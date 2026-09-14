@@ -73,6 +73,24 @@ discover them.
 
 **Whether a product is defective is decided by a court on the facts — not by a scanner.**
 
+## From a scan to a defensible record
+
+The scan tells you what is past end-of-life. It does not tell you whether you are in scope, what
+the directive actually requires, or how to keep a record that you can and do supply security
+updates.
+
+If that is the part you need, there is a paid kit — six documents, ~18,500 words, plus a 64-page
+PDF: a scope decision tree (including the free-and-open-source carve-out), what changed from the
+1985 regime, an update-supportability evidence practice, copy-paste policy templates, and a
+two-page board brief. **$149 single-organisation, $490 consultancy licence.**
+<https://cra.toledotechnologies.com/pld/>
+
+It is not legal advice and says so throughout. Where a question needs a lawyer it says that
+instead of guessing — there are 25 explicit `[VERIFY: ...]` markers. It also tells you that
+Recital 51 imposes *no* obligation to provide updates, and that pure economic loss is excluded
+(Recital 24), so a B2B SaaS whose failure mode is downtime may have low exposure. Read the free
+tool's output first and decide whether you need the kit at all.
+
 ## Related
 
 Different regulation, different question: the EU Cyber Resilience Act's Article 14 asks whether

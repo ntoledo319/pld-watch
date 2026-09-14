@@ -105,8 +105,9 @@ class TestAssess(unittest.TestCase):
 
 class TestConstants(unittest.TestCase):
     def test_pld_date_is_correct(self):
-        # Directive (EU) 2024/2853 applies from 9 December 2026.
-        self.assertEqual(pw.PLD_APPLIES, date(2026, 12, 9))
+        # Art. 2(1) as corrected by Corrigendum 2026/90364 applies from 8 December 2026.
+        self.assertEqual(pw.PLD_APPLIES, date(2026, 12, 8))  # per Corrigendum 2026/90364
+        self.assertEqual(pw.PLD_TRANSPOSITION, date(2026, 12, 9))
 
 
 if __name__ == "__main__":

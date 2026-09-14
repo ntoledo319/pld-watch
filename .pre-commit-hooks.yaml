@@ -1,0 +1,15 @@
+- id: pld-watch
+  name: pld-watch (EU Product Liability Directive end-of-life screen)
+  description: >-
+    Flag runtimes and frameworks past their upstream end-of-life date. Under
+    Directive (EU) 2024/2853, applying from 9 December 2026, the ability to supply
+    security updates is relevant to whether a product is defective.
+  entry: pld-watch scan
+  language: python
+  pass_filenames: false
+  files: >-
+    (?x)^(
+      .*\.nvmrc|.*\.python-version|.*go\.mod|.*package\.json|
+      .*requirements(-dev)?\.txt|.*Dockerfile
+    )$
+  stages: [pre-commit, manual]

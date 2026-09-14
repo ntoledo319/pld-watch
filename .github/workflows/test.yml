@@ -1,0 +1,66 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # The EOL catalogue moves under us. A weekly run catches an upstream change
+    # that breaks parsing before a user does.
+    - cron: '17 6 * * 1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests and detection census
+        run: python -m unittest discover -s tests -v
+
+  census-guard:
+    # The census pins exactly which declaration forms are detected. If a change
+    # moves that number, this job explains what to do rather than just going red.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Detection census must not shrink silently
+        run: |
+          if ! python -m unittest tests.test_detection_census -v; then
+            echo "::error title=Detection census changed::A declaration form was added or lost."
+            echo "If this was intentional, update EXPECTED in tests/test_detection_census.py"
+            echo "in the SAME commit, naming the declaration form. A scanner that quietly"
+            echo "detects fewer things still prints a credible report - that is the failure"
+            echo "mode this guard exists to catch."
+            exit 1
+          fi
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exit-code contract against live endoflife.date
+        run: |
+          set +e
+          mkdir -p /tmp/eol && printf '16\n' > /tmp/eol/.nvmrc
+          python pld_watch.py scan /tmp/eol > /tmp/o1.txt 2>&1; rc1=$?
+          mkdir -p /tmp/ok && printf '24\n' > /tmp/ok/.nvmrc
+          python pld_watch.py scan /tmp/ok > /tmp/o2.txt 2>&1; rc2=$?
+          mkdir -p /tmp/none && echo hi > /tmp/none/README.md
+          python pld_watch.py scan /tmp/none > /tmp/o3.txt 2>&1; rc3=$?
+          echo "eol=$rc1 supported=$rc2 nothing=$rc3"
+          [ "$rc1" = "1" ] || { echo "::error::EOL project must exit 1"; cat /tmp/o1.txt; exit 1; }
+          [ "$rc2" = "0" ] || { echo "::error::Supported project must exit 0"; cat /tmp/o2.txt; exit 1; }
+          [ "$rc3" = "2" ] || { echo "::error::Nothing detectable must exit 2, never 1"; cat /tmp/o3.txt; exit 1; }

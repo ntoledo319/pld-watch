@@ -1,0 +1,44 @@
+name: 'pld-watch'
+description: 'Find components past upstream end-of-life — EU Product Liability Directive (EU) 2024/2853 update-supportability screen.'
+author: 'Toledo Technologies LLC'
+branding:
+  icon: 'clock'
+  color: 'orange'
+inputs:
+  path:
+    description: 'Directory to scan'
+    required: false
+    default: '.'
+  fail-on-eol:
+    description: 'Fail the job when a component is past end-of-life'
+    required: false
+    default: 'true'
+  json:
+    description: 'Emit machine-readable JSON'
+    required: false
+    default: 'false'
+outputs:
+  eol-count:
+    description: 'Number of components found past upstream end-of-life'
+    value: ${{ steps.run.outputs.eol-count }}
+runs:
+  using: 'composite'
+  steps:
+    - id: run
+      shell: bash
+      run: |
+        set -uo pipefail
+        ARGS=("${{ inputs.path }}")
+        if [ "${{ inputs.json }}" = "true" ]; then ARGS+=("--json"); fi
+        python3 "${{ github.action_path }}/pld_watch.py" scan "${ARGS[@]}" | tee /tmp/pld_out.txt
+        rc=${PIPESTATUS[0]}
+        if [ "${{ inputs.json }}" = "true" ]; then
+          COUNT=$(python3 -c "import json,sys; print(json.load(open('/tmp/pld_out.txt')).get('eol_count',0))" 2>/dev/null || echo 0)
+        else
+          COUNT=$(grep -oE '^\s+[0-9]+ COMPONENT\(S\) PAST' /tmp/pld_out.txt | grep -oE '[0-9]+' | head -1 || echo 0)
+        fi
+        echo "eol-count=${COUNT:-0}" >> "$GITHUB_OUTPUT"
+        # rc 2 means "nothing to check" - that must not fail a build.
+        if [ "$rc" = "2" ]; then exit 0; fi
+        if [ "$rc" = "1" ] && [ "${{ inputs.fail-on-eol }}" != "true" ]; then exit 0; fi
+        exit $rc

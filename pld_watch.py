@@ -26,7 +26,14 @@ from pathlib import Path
 
 __version__ = "1.0.0"
 EOL_API = "https://endoflife.date/api/v1/products"
-PLD_APPLIES = date(2026, 12, 9)
+# Article 2(1) as published read "after 9 December 2026". Corrigendum 2026/90364
+# (OJ L, 2026/90364, 7.5.2026) corrected it to "after 8 December 2026":
+#   http://data.europa.eu/eli/dir/2024/2853/corrigendum/2026-05-07/oj
+# Articles 20, 21 and 22(1) (repeal, transposition, entry into force) still say
+# 9 December 2026. The scope sentence is the one that decides whether a product
+# you place on the market is caught, so that is the date this tool counts to.
+PLD_APPLIES = date(2026, 12, 8)
+PLD_TRANSPOSITION = date(2026, 12, 9)
 CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "pld-watch"
 
 
@@ -329,6 +336,8 @@ def cmd_clock(a) -> int:
     print(bold("EU Product Liability Directive (EU) 2024/2853"))
     print()
     print(f"  Applies to products placed on the EU market from  {PLD_APPLIES.isoformat()}")
+    print(f"  (Art. 2(1) as corrected by Corrigendum 2026/90364;")
+    print(f"   Arts. 20-22 transposition/repeal date is {PLD_TRANSPOSITION.isoformat()})")
     if days > 0:
         print(f"  Days remaining                                    {days}")
     else:

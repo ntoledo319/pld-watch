@@ -1,0 +1,65 @@
+name: self-scan
+
+# Dogfooding. If this tool cannot be run against its own repository without
+# error, it has no business telling anyone else what to ship. Runs weekly
+# because the endoflife.date catalogue moves underneath us: the answer can
+# change without a single line of this code changing.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 7 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Scan this repository
+        run: |
+          set +e
+          python pld_watch.py scan . > out.txt 2>&1
+          rc=$?
+          cat out.txt
+          # All three documented exits are acceptable here; what must never
+          # happen is an undocumented exit code. Checked live: this repo has a
+          # Dockerfile FROM line, so it currently exits 0, not 2.
+          if [ "$rc" = "2" ]; then
+            echo "::notice title=Nothing to check::No runtime or framework version detected - exit 2, as designed."
+            exit 0
+          fi
+          if [ "$rc" = "0" ]; then
+            echo "::notice title=Clean::Nothing detected past end-of-life."
+            exit 0
+          fi
+          if [ "$rc" = "1" ]; then
+            echo "::warning title=EOL component found::The tool found something past end-of-life in its own repo."
+            exit 0
+          fi
+          echo "::error title=Unexpected exit::pld-watch exited $rc, which is not part of its documented contract."
+          exit 1
+
+      - name: Machine-readable output must be valid JSON
+        run: |
+          set +e
+          python pld_watch.py scan . --json > out.json 2>&1
+          rc=$?
+          if [ "$rc" = "2" ]; then
+            echo "nothing to check; --json not exercised"; exit 0
+          fi
+          python -c "import json,sys; d=json.load(open('out.json')); print('keys:', sorted(d)); sys.exit(0 if 'components' in d and 'pld_applies' in d else 1)"
+
+      - name: Clock output must still name both dates
+        run: |
+          python pld_watch.py clock | tee clock.txt
+          grep -q "2026-12-08" clock.txt || { echo "::error::scope date missing"; exit 1; }
+          grep -q "2026-12-09" clock.txt || { echo "::error::transposition date missing"; exit 1; }
